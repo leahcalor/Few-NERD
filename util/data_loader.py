@@ -13,10 +13,14 @@ def get_class_name(rawtag):
         return rawtag
 
 class Sample(FewshotSampleBase):
-    def __init__(self, filelines):
+    def __init__(self, filelines, lowercase=True):
         filelines = [line.split('\t') for line in filelines]
         self.words, self.tags = zip(*filelines)
-        self.words = [word.lower() for word in self.words]
+        self.lowercase = lowercase
+        if lowercase:
+            self.words = [word.lower() for word in self.words]
+        else:
+            self.words = list(self.words)
         # strip B-, I-
         self.normalized_tags = list(map(get_class_name, self.tags))
         self.class_count = {}
@@ -64,7 +68,7 @@ class FewShotNERDatasetWithRandomSampling(data.Dataset):
     """
     Fewshot NER Dataset
     """
-    def __init__(self, filepath, tokenizer, N, K, Q, max_length, ignore_label_id=-1):
+    def __init__(self, filepath, tokenizer, N, K, Q, max_length, ignore_label_id=-1, lowercase=True):
         if not os.path.exists(filepath):
             print("[ERROR] Data file does not exist!")
             assert(0)
@@ -73,6 +77,7 @@ class FewShotNERDatasetWithRandomSampling(data.Dataset):
         self.K = K
         self.Q = Q
         self.tokenizer = tokenizer
+        self.lowercase = lowercase
         self.samples, self.classes = self.__load_data_from_file__(filepath)
         self.max_length = max_length
         self.sampler = FewshotSampler(N, K, Q, self.samples, classes=self.classes)
@@ -97,7 +102,7 @@ class FewShotNERDatasetWithRandomSampling(data.Dataset):
             if line:
                 samplelines.append(line)
             else:
-                sample = Sample(samplelines)
+                sample = Sample(samplelines, lowercase=self.lowercase)
                 samples.append(sample)
                 sample_classes = sample.get_tag_class()
                 self.__insert_sample__(index, sample_classes)
@@ -105,7 +110,7 @@ class FewShotNERDatasetWithRandomSampling(data.Dataset):
                 samplelines = []
                 index += 1
         if samplelines:
-            sample = Sample(samplelines)
+            sample = Sample(samplelines, lowercase=self.lowercase)
             samples.append(sample)
             sample_classes = sample.get_tag_class()
             self.__insert_sample__(index, sample_classes)
@@ -119,6 +124,8 @@ class FewShotNERDatasetWithRandomSampling(data.Dataset):
         tokens = []
         labels = []
         for word, tag in zip(sample.words, sample.normalized_tags):
+            if self.lowercase:
+                word = word.lower()
             word_tokens = self.tokenizer.tokenize(word)
             if word_tokens:
                 tokens.extend(word_tokens)
@@ -216,12 +223,13 @@ class FewShotNERDatasetWithRandomSampling(data.Dataset):
         return 100000
 
 class FewShotNERDataset(FewShotNERDatasetWithRandomSampling):
-    def __init__(self, filepath, tokenizer, max_length, ignore_label_id=-1):
+    def __init__(self, filepath, tokenizer, max_length, ignore_label_id=-1, lowercase=True):
         if not os.path.exists(filepath):
             print("[ERROR] Data file does not exist!")
             assert(0)
         self.class2sampleid = {}
         self.tokenizer = tokenizer
+        self.lowercase = lowercase
         self.samples = self.__load_data_from_file__(filepath)
         self.max_length = max_length
         self.ignore_label_id = ignore_label_id
@@ -243,6 +251,8 @@ class FewShotNERDataset(FewShotNERDatasetWithRandomSampling):
         tokens = []
         labels = []
         for word, tag in zip(words, tags):
+            if self.lowercase:
+                word = word.lower()
             word_tokens = self.tokenizer.tokenize(word)
             if word_tokens:
                 tokens.extend(word_tokens)
@@ -310,12 +320,13 @@ def collate_fn(data):
     batch_query['label'] = [torch.tensor(tag_list).long() for tag_list in batch_query['label']]
     return batch_support, batch_query
 
-def get_loader(filepath, tokenizer, N, K, Q, batch_size, max_length, 
-        num_workers=8, collate_fn=collate_fn, ignore_index=-1, use_sampled_data=True):
+def get_loader(filepath, tokenizer, N, K, Q, batch_size, max_length,
+        num_workers=8, collate_fn=collate_fn, ignore_index=-1, use_sampled_data=True,
+        lowercase=True):
     if not use_sampled_data:
-        dataset = FewShotNERDatasetWithRandomSampling(filepath, tokenizer, N, K, Q, max_length, ignore_label_id=ignore_index)
+        dataset = FewShotNERDatasetWithRandomSampling(filepath, tokenizer, N, K, Q, max_length, ignore_label_id=ignore_index, lowercase=lowercase)
     else:
-        dataset = FewShotNERDataset(filepath, tokenizer, max_length, ignore_label_id=ignore_index)
+        dataset = FewShotNERDataset(filepath, tokenizer, max_length, ignore_label_id=ignore_index, lowercase=lowercase)
     data_loader = data.DataLoader(dataset=dataset,
             batch_size=batch_size,
             shuffle=True,
