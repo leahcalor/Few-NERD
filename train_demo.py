@@ -68,6 +68,12 @@ def main():
     parser.add_argument('--use_sampled_data', action='store_true',
            help='use released sampled data, the data should be stored at "data/episode-data/" ')
 
+    parser.add_argument('--lowercase', dest='lowercase', action='store_true',
+           help='lowercase words before tokenization (default)')
+    parser.add_argument('--no-lowercase', dest='lowercase', action='store_false',
+           help='do not lowercase words')
+    parser.set_defaults(lowercase=True)
+
 
     # only for bert / roberta
     parser.add_argument('--pretrain_ckpt', default=None,
@@ -125,11 +131,11 @@ def main():
         print("Warning: you are running few-shot learning methods on `supervised` dataset, if it is not expected, please change to `--mode inter` or `--mode intra`.")
 
     train_data_loader = get_loader(opt.train, tokenizer,
-            N=trainN, K=K, Q=Q, batch_size=batch_size, max_length=max_length, ignore_index=opt.ignore_index, use_sampled_data=opt.use_sampled_data)
+            N=trainN, K=K, Q=Q, batch_size=batch_size, max_length=max_length, ignore_index=opt.ignore_index, use_sampled_data=opt.use_sampled_data, lowercase=opt.lowercase)
     val_data_loader = get_loader(opt.dev, tokenizer,
-            N=N, K=K, Q=Q, batch_size=batch_size, max_length=max_length, ignore_index=opt.ignore_index, use_sampled_data=opt.use_sampled_data)
+            N=N, K=K, Q=Q, batch_size=batch_size, max_length=max_length, ignore_index=opt.ignore_index, use_sampled_data=opt.use_sampled_data, lowercase=opt.lowercase)
     test_data_loader = get_loader(opt.test, tokenizer,
-            N=N, K=K, Q=Q, batch_size=batch_size, max_length=max_length, ignore_index=opt.ignore_index, use_sampled_data=opt.use_sampled_data)
+            N=N, K=K, Q=Q, batch_size=batch_size, max_length=max_length, ignore_index=opt.ignore_index, use_sampled_data=opt.use_sampled_data, lowercase=opt.lowercase)
 
         
     prefix = '-'.join([model_name, opt.mode, str(N), str(K), 'seed'+str(opt.seed)])

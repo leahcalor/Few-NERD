@@ -177,9 +177,13 @@ Run `train_demo.py`. The arguments are presented below. The default parameters 
 -- pretrain_ckpt        bert pre-trained checkpoint
 -- dot                  use dot instead of L2 distance in distance calculation
 -- use_sgd_for_bert     use SGD instead of AdamW for BERT.
+-- lowercase / --no-lowercase
+                       whether to lowercase words before tokenization (disable for languages like Chinese)
 # only for structshot
 -- tau                  StructShot parameter to re-normalizes the transition probabilities
 ```
+
+Lowercasing is enabled by default. For scripts where case does not matter (e.g., Chinese datasets), run with `--no-lowercase`.
 
 - For hyperparameter `--tau` in structshot, we use `0.32` in 1-shot setting, `0.318` for 5-way-5-shot setting, and `0.434` for 10-way-5-shot setting.
 
